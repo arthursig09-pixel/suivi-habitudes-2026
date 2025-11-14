@@ -1,0 +1,253 @@
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"><title>HTML Online Viewer</title></head><body style="margin: 0px;"><iframe srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;fr&quot;&gt;
+&lt;head&gt;
+  &lt;meta charset=&quot;UTF-8&quot;&gt;
+  &lt;title&gt;Suivi Habitudes &amp; Tâches Pro Ultime 2026&lt;/title&gt;
+  &lt;script src=&quot;https://unpkg.com/react@18/umd/react.development.js&quot;&gt;&lt;/script&gt;
+  &lt;script src=&quot;https://unpkg.com/react-dom@18/umd/react-dom.development.js&quot;&gt;&lt;/script&gt;
+  &lt;script src=&quot;https://unpkg.com/@babel/standalone/babel.min.js&quot;&gt;&lt;/script&gt;
+  &lt;style&gt;
+    body { font-family: Arial, sans-serif; margin:0; padding:0; background: linear-gradient(to right, #ffecd2, #fcb69f); }
+    .container { max-width:1300px; margin:auto; background:#fff; padding:20px; border-radius:15px; margin-top:20px; box-shadow:0 10px 30px rgba(0,0,0,0.2); }
+    table { width:100%; border-collapse: collapse; }
+    th, td { padding:10px; text-align:center; border-bottom:1px solid #ddd; }
+    th { background:#e67e22; color:#fff; }
+    td input[type='checkbox'], td input[type='text'], td select, td input[type='date'], td input[type='number'] { padding:4px; font-size:14px; }
+    td input[type='checkbox'] { width:22px; height:22px; cursor:pointer; }
+    button { cursor:pointer; background:#e67e22; color:#fff; border:none; padding:10px 15px; border-radius:10px; margin:2px; font-weight:bold; }
+    button:hover { background:#d35400; }
+    .nav-buttons, .habit-add, .save-buttons { display:flex; gap:10px; justify-content:center; margin-bottom:15px; flex-wrap:wrap; }
+    h1,h2,h3 { text-align:center; }
+    svg { display:block; margin:20px auto; max-width:100%; }
+    .calendar { display:grid; grid-template-columns: repeat(7,1fr); gap:5px; margin-top:20px; }
+    .day { border:1px solid #ccc; padding:10px; border-radius:5px; background:#f9f9f9; min-height:100px; }
+    .task-item { background:#f1c40f; padding:3px 5px; border-radius:4px; margin:2px 0; font-size:12px; color:#fff; display:flex; justify-content:space-between; align-items:center; }
+    .task-item button { background:#c0392b; padding:2px 5px; font-size:10px; border-radius:3px; }
+    .task-item button:hover { background:#e74c3c; }
+    .filter-section, .stats-section { margin:15px 0; text-align:center; }
+    .note-section, .goal-section { margin:15px 0; padding:10px; border:1px solid #ddd; border-radius:10px; background:#fef9e7; }
+    .month-nav { text-align:center; margin-bottom:10px; }
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div class=&quot;container&quot;&gt;
+  &lt;div id=&quot;root&quot;&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;script type=&quot;text/babel&quot;&gt;
+const { useState, useEffect } = React;
+
+function AddHabitForm({ addHabit }) {
+  const [name, setName] = useState(&quot;&quot;);
+  return (
+    &lt;div className=&quot;habit-add&quot;&gt;
+      &lt;input type=&quot;text&quot; value={name} onChange={e =&gt; setName(e.target.value)} placeholder=&quot;Nouvelle habitude&quot; /&gt;
+      &lt;button onClick={() =&gt; { if(name.trim()) { addHabit(name.trim()); setName(&quot;&quot;); } }}&gt;Ajouter&lt;/button&gt;
+    &lt;/div&gt;
+  );
+}
+
+function AddTaskForm({ addTask }) {
+  const [name,setName]=useState(&quot;&quot;);
+  const [difficulty,setDifficulty]=useState(&quot;Moyen&quot;);
+  const [dueDate,setDueDate]=useState(&quot;&quot;);
+  const [priority,setPriority]=useState(1);
+  return (&lt;div className=&quot;habit-add&quot;&gt;
+    &lt;input type=&quot;text&quot; placeholder=&quot;Nouvelle tâche&quot; value={name} onChange={e=&gt;setName(e.target.value)} /&gt;
+    &lt;select value={difficulty} onChange={e=&gt;setDifficulty(e.target.value)}&gt;
+      &lt;option&gt;Facile&lt;/option&gt;&lt;option&gt;Moyen&lt;/option&gt;&lt;option&gt;Difficile&lt;/option&gt;
+    &lt;/select&gt;
+    &lt;input type=&quot;date&quot; value={dueDate} onChange={e=&gt;setDueDate(e.target.value)} /&gt;
+    &lt;input type=&quot;number&quot; min=&quot;1&quot; max=&quot;5&quot; value={priority} onChange={e=&gt;setPriority(e.target.value)} placeholder=&quot;Priorité 1-5&quot; /&gt;
+    &lt;button onClick={()=&gt;{if(name.trim() &amp;&amp; dueDate){addTask({name,difficulty,dueDate,priority:parseInt(priority),done:false}); setName(&quot;&quot;); setDueDate(&quot;&quot;); setPriority(1);}}}&gt;Ajouter Tâche&lt;/button&gt;
+  &lt;/div&gt;);
+}
+
+function AddNoteForm({ addNote }) {
+  const [note,setNote]=useState(&quot;&quot;);
+  return &lt;div className=&quot;habit-add&quot;&gt;
+    &lt;input type=&quot;text&quot; placeholder=&quot;Nouvelle note&quot; value={note} onChange={e=&gt;setNote(e.target.value)} /&gt;
+    &lt;button onClick={()=&gt;{if(note.trim()){addNote({text:note}); setNote(&quot;&quot;);}}}&gt;Ajouter Note&lt;/button&gt;
+  &lt;/div&gt;;
+}
+
+function HabitChart({ data, title }) {
+  const width=700,height=250,padding=50,barW=(width-padding*2)/data.length;
+  const colors=[&quot;#e74c3c&quot;,&quot;#3498db&quot;,&quot;#2ecc71&quot;,&quot;#9b59b6&quot;,&quot;#f1c40f&quot;];
+  return (&lt;div&gt;
+    &lt;h3&gt;{title}&lt;/h3&gt;
+    &lt;svg width={width} height={height}&gt;
+      {data.map((d,i)=&gt;{
+        const barH=(d.percent/100)*(height-padding*2);
+        const x=padding+i*barW+6;
+        const y=height-padding-barH;
+        const color=colors[i%colors.length];
+        return (&lt;g key={i}&gt;
+          &lt;rect x={x} y={y} width={barW-12} height={barH} fill={color} /&gt;
+          &lt;text x={x+(barW-12)/2} y={y-5} fontSize={14} textAnchor=&quot;middle&quot;&gt;{d.percent}%&lt;/text&gt;
+          &lt;text x={x+(barW-12)/2} y={height-padding+20} fontSize={14} textAnchor=&quot;middle&quot;&gt;{d.habit}&lt;/text&gt;
+        &lt;/g&gt;);
+      })}
+    &lt;/svg&gt;
+  &lt;/div&gt;);
+}
+
+function HabitTracker(){
+  const initialHabits=[&quot;Lecture&quot;,&quot;Sport&quot;,&quot;Méditation&quot;];
+  const [view,setView]=useState('month'); 
+  const [month,setMonth]=useState(0); 
+  const [year,setYear]=useState(2026);
+  const [habits,setHabits]=useState(initialHabits);
+  const [entries,setEntries]=useState([]);
+  const [tasks,setTasks]=useState([]);
+  const [notes,setNotes]=useState([]);
+  const [goals,setGoals]=useState([]);
+  const [monthHabitInput,setMonthHabitInput]=useState(&quot;&quot;);
+  const [yearViewMonth,setYearViewMonth]=useState(null);
+  const [filterDifficulty,setFilterDifficulty]=useState(&quot;Tous&quot;);
+
+  const generateMonthData=(year,month)=&gt;{
+    const days=new Date(year,month+1,0).getDate();
+    return Array.from({length:days},(_,i)=&gt;{
+      const day={date:`${year}-${String(month+1).padStart(2,'0')}-${String(i+1).padStart(2,'0')}`};
+      habits.forEach(h=&gt;day[h]=false);
+      return day;
+    });
+  };
+
+  useEffect(()=&gt;{
+    const saved=localStorage.getItem('habitTrackerProUltimeData');
+    if(saved){
+      const parsed=JSON.parse(saved);
+      setHabits(parsed.habits||initialHabits);
+      setEntries(parsed.entries||generateMonthData(2026,month));
+      setTasks(parsed.tasks||[]);
+      setNotes(parsed.notes||[]);
+      setGoals(parsed.goals||[]);
+      setMonth(parsed.month||0);
+      setYear(2026);
+    } else {
+      setEntries(generateMonthData(2026,month));
+    }
+  },[]);
+
+  useEffect(()=&gt;{
+    localStorage.setItem('habitTrackerProUltimeData',JSON.stringify({habits,entries,tasks,notes,goals,month,year}));
+  },[habits,entries,tasks,notes,goals,month,year]);
+
+  const addHabit=name=&gt;{ if(!habits.includes(name)) setHabits([...habits,name]); };
+  const removeHabit=name=&gt;{ setHabits(habits.filter(h=&gt;h!==name)); };
+  const toggleHabit=(i,h)=&gt;{ const newEntries=[...entries]; newEntries[i][h]=!newEntries[i][h]; setEntries(newEntries); };
+  const addTask=task=&gt;setTasks([...tasks,task]);
+  const toggleTask=i=&gt;{ const newTasks=[...tasks]; newTasks[i].done=!newTasks[i].done; setTasks(newTasks); };
+  const deleteTask=i=&gt;{ const newTasks=[...tasks]; newTasks.splice(i,1); setTasks(newTasks); };
+  const addNote=note=&gt;setNotes([...notes,note]);
+  const addGoal=goal=&gt;setGoals([...goals,goal]);
+  const percentageOverall=dataEntries=&gt;{ const total=dataEntries.length*habits.length; if(total===0) return 0; const done=dataEntries.reduce((acc,d)=&gt;acc+habits.filter(h=&gt;d[h]).length,0); return Math.round((done/total)*100); };
+
+  const renderTable=dataEntries=&gt;(&lt;div&gt;
+    {yearViewMonth===null &amp;&amp; &lt;div className=&quot;habit-add&quot;&gt;
+      &lt;input type=&quot;text&quot; placeholder=&quot;Nouvelle habitude&quot; value={monthHabitInput} onChange={e=&gt;setMonthHabitInput(e.target.value)} /&gt;
+      &lt;button onClick={()=&gt;{ if(monthHabitInput){ addHabit(monthHabitInput); setMonthHabitInput(&quot;&quot;); } }}&gt;Ajouter Habitude&lt;/button&gt;
+    &lt;/div&gt;}
+    &lt;HabitChart data={habits.map(h=&gt;({habit:h,percent:entries.length?Math.round(entries.filter(e=&gt;e[h]).length*100/entries.length):0}))} title=&quot;Progression par habitude&quot; /&gt;
+    &lt;div className=&quot;month-nav&quot;&gt;
+      &lt;button onClick={()=&gt;{
+        let prevMonth=month-1;
+        let prevYear=year;
+        if(prevMonth&lt;0){ prevMonth=11; prevYear-=1; }
+        setMonth(prevMonth); setYear(prevYear);
+        setEntries(generateMonthData(prevYear,prevMonth));
+      }}&gt;Mois précédent&lt;/button&gt;
+      &lt;button onClick={()=&gt;{
+        let nextMonth=month+1;
+        let nextYear=year;
+        if(nextMonth&gt;11){ nextMonth=0; nextYear+=1; }
+        setMonth(nextMonth); setYear(nextYear);
+        setEntries(generateMonthData(nextYear,nextMonth));
+      }}&gt;Mois suivant&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;table&gt;
+      &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Date&lt;/th&gt;{habits.map(h=&gt;&lt;th key={h}&gt;{h} {yearViewMonth===null &amp;&amp; &lt;button onClick={()=&gt;removeHabit(h)}&gt;X&lt;/button&gt;}&lt;/th&gt;)}&lt;/tr&gt;&lt;/thead&gt;
+      &lt;tbody&gt;{dataEntries.map((d,i)=&gt;(&lt;tr key={i} style={{background:i%2===0?'#f9f9f9':'#fff'}}&gt;&lt;td&gt;{d.date}&lt;/td&gt;{habits.map(h=&gt;&lt;td key={h}&gt;&lt;input type='checkbox' checked={d[h]} onChange={()=&gt;toggleHabit(i,h)} /&gt;&lt;/td&gt;)}&lt;/tr&gt;))}&lt;/tbody&gt;
+    &lt;/table&gt;
+  &lt;/div&gt;);
+
+  const renderTasks=()=&gt;(&lt;div&gt;
+    &lt;h2&gt;Tâches&lt;/h2&gt;
+    &lt;div className=&quot;filter-section&quot;&gt;
+      &lt;label&gt;Filtrer par difficulté: &lt;/label&gt;
+      &lt;select value={filterDifficulty} onChange={e=&gt;setFilterDifficulty(e.target.value)}&gt;
+        &lt;option&gt;Tous&lt;/option&gt;&lt;option&gt;Facile&lt;/option&gt;&lt;option&gt;Moyen&lt;/option&gt;&lt;option&gt;Difficile&lt;/option&gt;
+      &lt;/select&gt;
+    &lt;/div&gt;
+    &lt;AddTaskForm addTask={addTask} /&gt;
+    &lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Nom&lt;/th&gt;&lt;th&gt;Difficulté&lt;/th&gt;&lt;th&gt;Échéance&lt;/th&gt;&lt;th&gt;Priorité&lt;/th&gt;&lt;th&gt;Fait&lt;/th&gt;&lt;th&gt;Supprimer&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+    &lt;tbody&gt;{tasks.filter(t=&gt;filterDifficulty==='Tous'||t.difficulty===filterDifficulty).map((t,i)=&gt;(&lt;tr key={i} style={{background:t.done?'#d5f5e3':'#fff'}}&gt;&lt;td&gt;{t.name}&lt;/td&gt;&lt;td&gt;{t.difficulty}&lt;/td&gt;&lt;td&gt;{t.dueDate}&lt;/td&gt;&lt;td&gt;{t.priority}&lt;/td&gt;&lt;td&gt;&lt;input type='checkbox' checked={t.done} onChange={()=&gt;toggleTask(i)} /&gt;&lt;/td&gt;&lt;td&gt;&lt;button onClick={()=&gt;deleteTask(tasks.indexOf(t))}&gt;X&lt;/button&gt;&lt;/td&gt;&lt;/tr&gt;))}&lt;/tbody&gt;&lt;/table&gt;
+  &lt;/div&gt;);
+
+  const renderNotes=()=&gt;(&lt;div className=&quot;note-section&quot;&gt;
+    &lt;h2&gt;Notes&lt;/h2&gt;
+    &lt;AddNoteForm addNote={addNote} /&gt;
+    &lt;ul&gt;{notes.map((n,i)=&gt;&lt;li key={i}&gt;{n.text}&lt;/li&gt;)}&lt;/ul&gt;
+  &lt;/div&gt;);
+
+  const renderGoals=()=&gt;(&lt;div className=&quot;goal-section&quot;&gt;
+    &lt;h2&gt;Objectifs&lt;/h2&gt;
+    &lt;AddNoteForm addNote={addGoal} /&gt;
+    &lt;ul&gt;{goals.map((g,i)=&gt;&lt;li key={i}&gt;{g.text}&lt;/li&gt;)}&lt;/ul&gt;
+  &lt;/div&gt;);
+
+  const renderYearView=()=&gt;(&lt;div&gt;
+    {yearViewMonth===null ?
+      &lt;div style={{display:'flex',flexWrap:'wrap',gap:'15px',justifyContent:'center'}}&gt;
+        {Array.from({length:12},(_,i)=&gt;(&lt;div key={i} style={{padding:'15px',border:'1px solid #ccc',borderRadius:'10px',width:'120px',background:'#f1c40f',cursor:'pointer'}} onClick={()=&gt;setYearViewMonth(i)}&gt;{['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'][i]}&lt;/div&gt;))}
+      &lt;/div&gt;
+      : &lt;div&gt;
+          &lt;button onClick={()=&gt;setYearViewMonth(null)}&gt;Retour aux mois&lt;/button&gt;
+          &lt;h3 style={{textAlign:'center',marginTop:'10px'}}&gt;{['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'][yearViewMonth]} {year}&lt;/h3&gt;
+          {renderTable(generateMonthData(year,yearViewMonth))}
+        &lt;/div&gt;
+    }
+  &lt;/div&gt;);
+
+  const renderCalendar=()=&gt;{
+    const firstDay=new Date(year,month,1).getDay();
+    const daysInMonth=new Date(year,month+1,0).getDate();
+    const calendarDays=[];
+    for(let i=0;i&lt;firstDay;i++) calendarDays.push(&lt;div className=&quot;day&quot; key={'empty'+i}&gt;&lt;/div&gt;);
+    for(let d=1;d&lt;=daysInMonth;d++){
+      const dateStr=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const dayTasks=tasks.filter(t=&gt;t.dueDate===dateStr);
+      calendarDays.push(&lt;div className=&quot;day&quot; key={d}&gt;&lt;strong&gt;{d}&lt;/strong&gt;{dayTasks.map((t,i)=&gt;&lt;div className=&quot;task-item&quot; key={i}&gt;{t.name}&lt;button onClick={()=&gt;deleteTask(tasks.indexOf(t))}&gt;X&lt;/button&gt;&lt;/div&gt;)}&lt;/div&gt;);
+    }
+    return &lt;div className=&quot;calendar&quot;&gt;{calendarDays}&lt;/div&gt;;
+  };
+
+  return (&lt;div&gt;
+    &lt;h1&gt;Suivi Habitudes &amp; Tâches Pro Ultime 2026&lt;/h1&gt;
+    &lt;div className=&quot;nav-buttons&quot;&gt;
+      &lt;button onClick={()=&gt;{setView('month'); setYearViewMonth(null);}}&gt;Mois&lt;/button&gt;
+      &lt;button onClick={()=&gt;{setView('year'); setYearViewMonth(null);}}&gt;Année&lt;/button&gt;
+      &lt;button onClick={()=&gt;setView('tasks')}&gt;Tâches&lt;/button&gt;
+      &lt;button onClick={()=&gt;setView('calendar')}&gt;Calendrier&lt;/button&gt;
+      &lt;button onClick={()=&gt;setView('notes')}&gt;Notes&lt;/button&gt;
+      &lt;button onClick={()=&gt;setView('goals')}&gt;Objectifs&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;div className=&quot;save-buttons&quot;&gt;
+      &lt;button onClick={()=&gt;{ localStorage.setItem('habitTrackerProUltimeData',JSON.stringify({habits,entries,tasks,notes,goals,month,year})); alert('Données sauvegardées !'); }}&gt;Sauvegarder&lt;/button&gt;
+    &lt;/div&gt;
+    {view==='month' &amp;&amp; &lt;div&gt;&lt;p className=&quot;stats-section&quot;&gt;Taux global: {percentageOverall(entries)}%&lt;/p&gt;{renderTable(entries)}&lt;/div&gt;}
+    {view==='year' &amp;&amp; renderYearView()}
+    {view==='tasks' &amp;&amp; renderTasks()}
+    {view==='calendar' &amp;&amp; renderCalendar()}
+    {view==='notes' &amp;&amp; renderNotes()}
+    {view==='goals' &amp;&amp; renderGoals()}
+  &lt;/div&gt;);
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(&lt;HabitTracker /&gt;);
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+" style="border: medium; width: 100%; height: 100%;" title="HTML Online Viewer"></iframe></body></html>
